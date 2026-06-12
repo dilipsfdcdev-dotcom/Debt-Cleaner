@@ -25,7 +25,7 @@ services:
       DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-debt}:${POSTGRES_PASSWORD:-debt}@db:5432/${POSTGRES_DB:-debt_tracker}
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
     ports:
-      - "8000:8000"
+      - "${API_PORT:-8000}:8000"
 
   web:
     build: ./frontend
@@ -33,7 +33,7 @@ services:
     depends_on:
       - api
     ports:
-      - "3000:80"
+      - "${WEB_PORT:-3000}:80"
 
 volumes:
   debt_tracker_data:
