@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-debt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-debt}
+      POSTGRES_DB: ${POSTGRES_DB:-debt_tracker}
+    volumes:
+      - debt_tracker_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-debt} -d ${POSTGRES_DB:-debt_tracker}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-debt}:${POSTGRES_PASSWORD:-debt}@db:5432/${POSTGRES_DB:-debt_tracker}
+      DATABASE_URL_SYNC: postgresql+psycopg2://${POSTGRES_USER:-debt}:${POSTGRES_PASSWORD:-debt}@db:5432/${POSTGRES_DB:-debt_tracker}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - "8000:8000"
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:80"
+
+volumes:
+  debt_tracker_data:
