@@ -1,130 +1,78 @@
-# Debt Freedom Tracker
+# My Debt Tracker
 
-A fully local, Dockerised replacement for an Excel-based debt-payoff and daily
-trading P&L tracker. It computes — server-side and to the paise — how much
-profit per day / week / month you need to clear every active debt (principal +
-interest accrued over the goal window) **and** hit a savings goal, then lets you
-log daily trading P&L and tracks your pace against that target.
+A simple, private dashboard to track **everything you owe, everything owed to you, credit cards, and monthly bills** — running on your own computer. No accounts, no internet, no database to install.
 
-- **Backend:** Python FastAPI (async) · SQLAlchemy 2.0 · Pydantic v2 · Alembic
-- **Database:** PostgreSQL 16 with a named volume `debt_tracker_data` (data
-  survives container restarts)
-- **Frontend:** React 18 + Vite + Tailwind + Recharts
-- All money math uses `Decimal` end-to-end — no float drift.
-- Currency rendered in Indian digit grouping (₹3,88,09,651) with lakh/crore
-  short forms on the dashboard (₹3.88 Cr).
+## Start it
 
-## Quick start
+You need **Python 3.8+** (already on Mac/Linux; on Windows get it from python.org and tick *“Add to PATH”*).
+
+| Windows | Mac / Linux |
+|---|---|
+| Double-click **`start-windows.bat`** | Run `./start-mac-linux.sh` in Terminal |
+
+Or from any terminal:
 
 ```bash
-cp .env.example .env          # optional — sensible defaults are baked in
-docker compose up -d --build
+pip install openpyxl
 ```
-
-Then open **http://localhost:3000**.
-
-- Frontend (nginx, proxies `/api` → api): http://localhost:3000
-- Backend API + docs: http://localhost:8000/api/health · http://localhost:8000/docs
-
-On first start the API runs Alembic migrations and an **idempotent seed**
-(12 debts, goal settings, and 65 trading-day rows). Re-running never duplicates
-data — the seed only fills empty tables.
-
-## Mobile / same-network P&L entry
-
-The web container binds `0.0.0.0:3000`, so from a phone on the same Wi-Fi open
-`http://<your-computer-ip>:3000` and enter the day's P&L from the Daily P&L
-page (tap a cell → type → Enter).
-
-## The four pages
-
-1. **Dashboard** — grand target, progress bar, **Pace Check** (the revised
-   daily target is the number to watch), trading stats, cumulative-vs-ideal
-   P&L chart, and a monthly interest-burn card ("you're burning ₹X/day").
-2. **Daily P&L Tracker** — all 65 days, today highlighted + auto-scrolled,
-   inline edit, green/red row tinting, HIT badges, running cumulative & %.
-3. **Debt Register** — spreadsheet-style table with computed columns and a
-   TOTAL footer (active only), add/edit modal, one-click *Mark Cleared* (drops
-   it from totals), collapsed strike-through section for cleared debts.
-4. **Goal Settings** — edit the 4 inputs with a live preview of the recomputed
-   grand target / daily target before saving.
-
-## Calculations (replicated exactly from the spreadsheet)
-
-Only **Active** debts count anywhere; cleared debts drop out everywhere.
-
-- `monthly_interest_cost` = `outstanding × rate / 12` (Annual) or
-  `outstanding × rate` (Monthly)
-- `interest_till_goal_end` = `monthly_interest_cost × duration_months`
-- `total_payoff` = `outstanding + interest_till_goal_end`
-- `grand_target` = `Σ total_payoff + savings_goal`
-- `required_profit_per_day` = `grand_target / total_trading_days`
-
-With the seed data this reproduces: outstanding **₹3,88,09,651**, monthly burn
-**₹9,10,669.93**, interest provision **₹27,32,009.79**, grand target
-**₹5,15,41,660.79**, daily target **₹7,92,948.63**, over **65** trading days
-(2026-06-15 → 2026-09-15).
-
-> Trading days = weekdays strictly between start and goal-end date, which yields
-> the spreadsheet's 65 (a trading quarter) for the seed window.
-
-## Backup & restore
-
-**JSON backup via the API** (full dataset):
 
 ```bash
-curl http://localhost:8000/api/export > backup.json
-curl -X POST http://localhost:8000/api/import \
-     -H "Content-Type: application/json" --data @backup.json
+python tracker.py
 ```
 
-**Postgres dump / restore** (binary-faithful):
+Your browser opens **http://127.0.0.1:8765**. Keep the black window open while you use it; close it (or press Ctrl+C) to stop.
 
-```bash
-# Backup
-docker compose exec db pg_dump -U debt debt_tracker > debt_tracker.sql
+## First time: bring in your Excel
 
-# Restore (into a running, empty db)
-cat debt_tracker.sql | docker compose exec -T db psql -U debt -d debt_tracker
+Go to **Excel & Backup → Import from Excel**, pick your `Expense_Debt_Tracker.xlsx`, review the list, click **Import selected**. It reads the *Debts Register* sheet, any *Credit Cards / Receivables / Bills* sheets, and turns the chit schedule into a single chit entry with the remaining balance. After that, make all changes from the dashboard.
+
+## What you can track
+
+- **I Owe** — bank loans, home / vehicle / personal loans, gold loans, **hand loans** (interest % per month), chits, business loans, anything else.
+- **Credit Cards** — limit, balance used, usage %, statement amount, minimum due, statement day, due date. Pay *statement*, *minimum* or *full balance* in one click.
+- **Owed to Me** — money you lent; record what you receive.
+- **Bills & Expenses** — rent, electricity, water, internet, mobile, insurance, school fees, subscriptions… monthly / quarterly / yearly / one-time, with autopay flag.
+- **Payments** — full history of every payment and receipt, filter by month, **Undo** any entry.
+
+## Automatic calculations
+
+Leave a field blank and it is worked out for you:
+
+| Blank field | Calculated as |
+|---|---|
+| Monthly payment | **EMI** from principal, rate and tenure — or **interest-only** (outstanding × rate) when there is no tenure. Interest-only amounts shrink automatically as the balance goes down. |
+| Outstanding | Balance today according to the EMI schedule (start date + tenure), else = principal |
+| Next due date | Next instalment date after today, from the start date |
+| End date | Start date + tenure |
+| Card minimum due | 5% of the statement amount |
+
+And always shown automatically:
+
+- **Interest per month** for every loan, and the **costliest debts** ranked by yearly rate.
+- **Missed instalments / arrears** — e.g. *6 dues missed = 6 × ₹4,00,000 = ₹24,00,000* — and an **Overdue now** total.
+- **Clears in / payoff date** and **interest still to pay** for each loan; overall **Debt-free by** date; interest-only loans flagged because they never reduce.
+- **Paying**: interest/principal split is pre-filled; the principal part reduces the outstanding; the due date moves forward by the number of instalments the amount covers. A loan that reaches ₹0 is marked *Closed*.
+
+Rates: choose **% per year** (bank loans) or **% per month** (hand loans — 1.5 means ₹1.50 per ₹100 per month).
+
+## Your data
+
+- Saved in `data/tracker.json` next to the app. Every change also keeps a copy in `data/backups/` (last 30).
+- **Excel & Backup** lets you download everything as a formatted Excel file, download/restore a full backup, or start over.
+- `data/` is git-ignored, so your figures are never committed.
+
+## Options
+
+- Different port: `TRACKER_PORT=8766 python tracker.py`
+- Use from your phone on the same Wi-Fi: `TRACKER_HOST=0.0.0.0 python tracker.py`, then open `http://<your-computer-ip>:8765` (anyone on that Wi-Fi could then open it too).
+- Don't auto-open the browser: `python tracker.py --no-browser`
+
+## Files
+
 ```
-
-## Reset everything
-
-```bash
-docker compose down -v        # -v also removes the debt_tracker_data volume
-docker compose up -d --build  # fresh DB, re-seeded
-```
-
-## Running the tests
-
-The calculation acceptance tests are pure-Python (no DB required):
-
-```bash
-cd backend
-pip install -r requirements.txt
-pytest
-```
-
-They assert the seed reproduces the headline numbers above, that marking the
-Mamaya hand loan cleared drops outstanding to ₹1,93,09,651 (and burn by
-₹5,85,000), and that entering ₹8,00,000 on day 1 flips status to **ON TRACK**
-with a revised daily target of `(grand − 8,00,000) / 64`.
-
-## Project layout
-
-```
-.
-├── docker-compose.yml
-├── .env.example
-├── backend/
-│   ├── app/
-│   │   ├── calculations.py   # pure Decimal calc engine (unit-tested)
-│   │   ├── models.py · schemas.py · seed.py · converters.py
-│   │   └── routers/          # dashboard, settings, debts, pnl, backup
-│   ├── alembic/              # migrations
-│   └── tests/test_calculations.py
-└── frontend/
-    └── src/
-        ├── pages/            # Dashboard, DailyPnL, DebtRegister, Settings
-        └── components/Sidebar.jsx
+tracker.py           the app (Python standard library + openpyxl for Excel)
+static/              the dashboard page (HTML / CSS / JS, works offline)
+start-windows.bat    double-click launcher for Windows
+start-mac-linux.sh   launcher for Mac / Linux
+data/                your data (created on first run, not in git)
 ```

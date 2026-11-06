@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Debt Tracker</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>₹</text></svg>">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">₹</span> My Debt Tracker</div>
+  <nav id="tabs">
+    <button data-view="dashboard" class="active">Dashboard</button>
+    <button data-view="debt">I Owe</button>
+    <button data-view="card">Credit Cards</button>
+    <button data-view="receivable">Owed to Me</button>
+    <button data-view="bill">Bills &amp; Expenses</button>
+    <button data-view="payments">Payments</button>
+    <button data-view="data">Excel &amp; Backup</button>
+  </nav>
+  <button class="btn primary" id="quickAdd">+ Add</button>
+</header>
+
+<main id="app"><div class="loading">Loading…</div></main>
+
+<div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="modal-head"><h2 id="modalTitle"></h2><button class="icon-btn" data-close>✕</button></div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

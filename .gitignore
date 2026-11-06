@@ -1,19 +1,10 @@
-# Python
+# personal financial data - never commit
+data/
+*.xlsx
+*.xls
+*.json.tmp
+
 __pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-*.egg-info/
-
-# Node
-node_modules/
-dist/
-.vite/
-
-# Env / secrets
-.env
-
-# OS / editor
+*.pyc
 .DS_Store
-*.log
+Thumbs.db
