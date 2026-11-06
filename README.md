@@ -8,7 +8,7 @@ You need **Python 3.8+** (already on Mac/Linux; on Windows get it from python.or
 
 | Windows | Mac / Linux |
 |---|---|
-| Double-click **`start-windows.bat`** | Run `./start-mac-linux.sh` in Terminal |
+| Double-click **`start-windows.bat`** (or run `py tracker.py`) | Run `./start-mac-linux.sh` in Terminal |
 
 Or from any terminal:
 
@@ -19,6 +19,8 @@ pip install openpyxl
 ```bash
 python tracker.py
 ```
+
+On Windows, if `python` says *“Python was not found … Microsoft Store”*, use **`py tracker.py`** instead (that message comes from a Store shortcut, not your real Python).
 
 Your browser opens **http://127.0.0.1:8765**. Keep the black window open while you use it; close it (or press Ctrl+C) to stop.
 
